@@ -8,9 +8,9 @@
     body{margin:0;font-family:sans-serif;background:#faf8ef;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh}
     #board{display:grid;grid-template-columns:repeat(4,100px);grid-gap:10px;background:#bbada0;padding:10px;border-radius:10px;position:relative}
     .cell{width:100px;height:100px;background:#cdc1b4;border-radius:5px;position:relative}
-    .tile{position:absolute;width:100%;height:100%;display:flex;justify-content:center;align-items:center;font-size:28px;font-weight:bold;color:#fff;border-radius:5px}
+    .tile{position:absolute;width:100%;height:100%;display:flex;justify-content:center;align-items:center;font-size:20px;font-weight:bold;color:#fff;border-radius:5px;text-align:center;padding:5px;}
     .tile img{width:100%;height:100%;object-fit:cover;border-radius:5px}
-    .watermark{margin-top:15px;font-size:14px;color:#776e65;opacity:0.7;user-select:none;}
+    .watermark{margin-top:15px;font-size:14px;color:#776e65;opacity:0.7;user-select:none;text-align:center;width:100%;}
     .watermark span.star{font-size:14px;color:#776e65;margin-left:2px}
 
     #passwordPrompt {
@@ -54,6 +54,14 @@
       font-size:18px;
       cursor:pointer;
     }
+
+    #scoreboard {
+      margin-bottom:20px;
+      text-align:center;
+      font-size:18px;
+      color:#776e65;
+    }
+    #scoreboard div {margin:5px 0;}
   </style>
 </head>
 <body>
@@ -65,6 +73,10 @@
   </div>
 
   <div id="gameContainer" style="display:none;">
+    <div id="scoreboard">
+      <div>Your current score: <span id="currentScore">0</span></div>
+      <div>Your high score: <span id="highScore">0</span></div>
+    </div>
     <div id="board"></div>
     <div id="gameOverOverlay" style="display:none;">
       <div>Game Over</div>
@@ -76,6 +88,22 @@
   <script>
     const SIZE=4;
     let grid;
+    let currentMax=2;
+    let highMax=2;
+
+    const nameMap={
+      2:"Gabe",
+      4:"Hannah",
+      8:"Adam Taylor",
+      16:"Lex",
+      32:"Kate",
+      64:"Adyr",
+      128:"Brooke",
+      256:"Ben Lightstone",
+      512:"Linoy",
+      1024:"Adam Storger",
+      2048:"Stewie"
+    };
 
     const imageMap={
       2:"images/2.png",
@@ -107,9 +135,15 @@
       for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
         const v=grid[r][c];if(!v)continue;
         const tile=document.createElement('div');tile.className='tile';
-        if(imageMap[v]){const img=document.createElement('img');img.src=imageMap[v];tile.appendChild(img);}else{tile.textContent=v;tile.style.background='#edc22e';}
+        if(nameMap[v]){tile.textContent=nameMap[v];tile.style.background='#edc22e';}
+        else if(imageMap[v]){const img=document.createElement('img');img.src=imageMap[v];tile.appendChild(img);} 
+        else {tile.textContent=v;tile.style.background='#edc22e';}
         cells[r*SIZE+c].appendChild(tile);
+        if(v>currentMax) currentMax=v;
+        if(v>highMax) highMax=v;
       }
+      document.getElementById('currentScore').textContent=nameMap[currentMax]||currentMax;
+      document.getElementById('highScore').textContent=nameMap[highMax]||highMax;
     }
 
     function setupBoard(){
@@ -130,7 +164,10 @@
           let row=grid[r].slice();
           if(dir==='right')row.reverse();
           row=compress(row);
-          for(let i=0;i<row.length-1;i++)if(row[i]&&row[i]===row[i+1]){row[i]*=2;row[i+1]=0;i++;}
+          for(let i=0;i<row.length-1;i++)if(row[i]&&row[i]===row[i+1]){
+            row[i]*=2;
+            row[i+1]=0;i++;
+          }
           row=pad(compress(row));
           if(dir==='right')row.reverse();
           if(row.some((v,i)=>v!==grid[r][i]))moved=true;
@@ -141,7 +178,10 @@
           let col=grid.map(r=>r[c]);
           if(dir==='down')col.reverse();
           col=compress(col);
-          for(let i=0;i<col.length-1;i++)if(col[i]&&col[i]===col[i+1]){col[i]*=2;col[i+1]=0;i++;}
+          for(let i=0;i<col.length-1;i++)if(col[i]&&col[i]===col[i+1]){
+            col[i]*=2;
+            col[i+1]=0;i++;
+          }
           col=pad(compress(col));
           if(dir==='down')col.reverse();
           for(let r=0;r<SIZE;r++){if(grid[r][c]!==col[r])moved=true;grid[r][c]=col[r];}
@@ -181,6 +221,7 @@
 
     function startGame(){
       grid=createEmpty();
+      currentMax=2;
       setupBoard();
       addRandom();addRandom();
       draw();
