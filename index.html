@@ -38,8 +38,10 @@
   <!-- PASSWORD GATE -->
   <div id="passwordPrompt">
     <h2>Enter Password to Play</h2>
-    <input type="password" id="passwordInput" placeholder="Password" autofocus>
-    <button id="passwordBtn">Submit</button>
+    <form id="pwForm" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <input type="password" id="passwordInput" placeholder="Password" autofocus>
+      <button id="passwordBtn" type="submit">Submit</button>
+    </form>
     <p id="error" style="color:red;display:none;">Incorrect password</p>
   </div>
 
@@ -73,12 +75,11 @@
 
   <!-- FIREBASE (GLOBAL LEADERBOARD) -->
   <script type="module">
-    try{
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-      import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-      import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-      const firebaseConfig = {
+    const firebaseConfig = {
   apiKey: "AIzaSyBDmxc9cg894mr6k2qD0CNmlcm7xqIM-1E",
   authDomain: "mac2048-e8ae1.firebaseapp.com",
   projectId: "mac2048-e8ae1",
@@ -87,18 +88,14 @@
   appId: "1:539725048583:web:32788c5135fc8172f4f3a2"
 };
 
-      const app  = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db   = getFirestore(app);
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
 
-      const ready = signInAnonymously(auth).catch(console.error);
-      async function fetchTop5(){ await ready; const q=query(collection(db,'leaderboard'), orderBy('tile','desc'), limit(5)); const snap=await getDocs(q); return snap.docs.map(d=>d.data()); }
-      async function submitTopScore(name, tile){ await ready; await addDoc(collection(db,'leaderboard'), {name, tile, ts: serverTimestamp()}); }
-      window.firebaseAPIs = { fetchTop5, submitTopScore, ready };
-    } catch(e) {
-      console.warn('Firebase module failed to load (this will not block the password).', e);
-      window.firebaseAPIs = { fetchTop5: async()=>[], submitTopScore: async()=>{}, ready: Promise.resolve() };
-    }
+    const ready = signInAnonymously(auth).catch(console.error);
+    async function fetchTop5(){ await ready; const q=query(collection(db,'leaderboard'), orderBy('tile','desc'), limit(5)); const snap=await getDocs(q); return snap.docs.map(d=>d.data()); }
+    async function submitTopScore(name, tile){ await ready; await addDoc(collection(db,'leaderboard'), {name, tile, ts: serverTimestamp()}); }
+    window.firebaseAPIs = { fetchTop5, submitTopScore, ready };
   </script>
 
   <!-- GAME LOGIC -->
@@ -289,10 +286,14 @@
 
     // attach listeners after DOM is ready
     (function(){
+      const form=document.getElementById('pwForm');
       const pw=document.getElementById('passwordInput');
-      const btn=document.getElementById('passwordBtn');
-      if(btn){ btn.addEventListener('click', window.checkPassword); }
-      if(pw){ pw.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); window.checkPassword(); }}); }
+      if(form){
+        form.addEventListener('submit', (e)=>{ e.preventDefault(); window.checkPassword(); });
+      }
+      if(pw){
+        pw.addEventListener('keydown',e=>{ if(e.key==='Enter'){ /* handled by form submit */ }});
+      }
     })();
 
     function startGame(){
