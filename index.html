@@ -19,9 +19,9 @@
     #personalBest{width:340px;max-width:92vw;background:#eee4da;border-radius:10px;padding:10px}
 
     #board{display:grid;grid-template-columns:repeat(4,100px);grid-gap:10px;background:#bbada0;padding:10px;border-radius:10px;position:relative}
-    .cell{width:100px;height:100px;background:#cdc1b4;border-radius:5px;position:relative}
-    .tile{position:absolute;width:100%;height:100%;display:flex;justify-content:center;align-items:center;font-size:20px;font-weight:bold;color:#fff;border-radius:5px;text-align:center;padding:5px;}
-    .tile img{width:100%;height:100%;object-fit:cover;border-radius:5px}
+    .cell{width:100px;height:100px;background:#cdc1b4;border-radius:5px;position:relative;overflow:hidden}
+    .tile{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;font-size:20px;font-weight:bold;color:#fff;border-radius:5px;text-align:center;box-sizing:border-box;padding:0}
+    .tile img{width:100%;height:100%;object-fit:cover;border-radius:5px;display:block}
 
     .watermark{margin-top:15px;font-size:14px;color:#776e65;opacity:0.7;user-select:none;text-align:center;width:100%;}
     .watermark span.star{font-size:14px;color:#776e65;margin-left:2px}
@@ -78,7 +78,7 @@
     import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     // 1) PASTE YOUR FIREBASE CONFIG FROM THE CONSOLE HERE
-    const firebaseConfig = {
+     const firebaseConfig = {
   apiKey: "AIzaSyBDmxc9cg894mr6k2qD0CNmlcm7xqIM-1E",
   authDomain: "mac2048-e8ae1.firebaseapp.com",
   projectId: "mac2048-e8ae1",
@@ -217,33 +217,35 @@
 
     // ======== Leaderboard / Personal Best ========
     async function handleScores(){
-      // update personal best
+      // update personal best locally
       const prevPB = getPersonalBest();
       if(currentMax > prevPB){ setPersonalBest(currentMax); }
 
-      // fetch current top 5 from Firebase
+      // try to pull board; if failure, fall back to empty so user can still be prompted
       const apis = window.firebaseAPIs;
-      if(!apis){ console.warn('Firebase not configured.'); renderLeaderboard([]); return; }
-      await apis.ready;
-      const top5 = await apis.fetchTop5();
+      if(!apis){ renderLeaderboard([]); return; }
 
-      // decide if qualifies
-      const minTop = top5.length ? Math.min(...top5.map(e=>e.tile)) : 0;
-      const qualifies = top5.length < 5 || currentMax > minTop;
-      if(qualifies){
-        let name = getPlayerName();
-        if(!name){
-          name = prompt('Congrats! New Top 5 score. Enter your name:') || 'Player';
-          setPlayerName(name);
+      (async () => {
+        let top5 = [];
+        try { await apis.ready; top5 = await apis.fetchTop5(); } catch(e) { top5 = []; }
+
+        const minTop = top5.length ? Math.min(...top5.map(e=>e.tile)) : 0;
+        const qualifies = top5.length < 5 || currentMax > minTop;
+        if(qualifies){
+          let name = getPlayerName();
+          if(!name){
+            name = prompt('Congrats! New Top 5 score. Enter your name:') || 'Player';
+            setPlayerName(name);
+          }
+          try { await apis.submitTopScore(name, currentMax); } catch(e) { console.warn('Submit failed:', e); }
         }
-        await apis.submitTopScore(name, currentMax);
-      }
-      // re-render leaderboard after potential write
-      const updated = await apis.fetchTop5();
-      renderLeaderboard(updated);
+
+        try { top5 = await apis.fetchTop5(); } catch(e) { /* keep prior */ }
+        renderLeaderboard(top5);
+      })();
     }
 
-    async function renderLeaderboard(top){
+    async function renderLeaderboard(top){(top){
       // if not provided, fetch
       if(!top){
         try{ top = await window.firebaseAPIs.fetchTop5(); } catch{ top=[]; }
