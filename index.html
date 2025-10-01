@@ -38,10 +38,10 @@
   <!-- PASSWORD GATE -->
   <div id="passwordPrompt">
     <h2>Enter Password to Play</h2>
-    <form id="pwForm" onsubmit="return checkPasswordInline(event)"$1>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
       <input type="password" id="passwordInput" placeholder="Password" autofocus>
-      <button id="passwordBtn" type="submit">Submit</button>
-    </form>
+      <button id="passwordBtn" type="button">Submit</button>
+    </div>
     <p id="error" style="color:red;display:none;">Incorrect password</p>
   </div>
 
@@ -303,16 +303,12 @@
     }
 
     // attach listeners after DOM is ready
-    (function(){
-      const form=document.getElementById('pwForm');
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const btn=document.getElementById('passwordBtn');
       const pw=document.getElementById('passwordInput');
-      if(form){
-        form.addEventListener('submit', (e)=>{ e.preventDefault(); window.checkPassword(); });
-      }
-      if(pw){
-        pw.addEventListener('keydown',e=>{ if(e.key==='Enter'){ /* handled by form submit */ }});
-      }
-    })();
+      if(btn){ btn.addEventListener('click', window.checkPassword); }
+      if(pw){ pw.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); window.checkPassword(); }}); }
+    });
 
     function startGame(){
       const inputEl=document.getElementById('passwordInput');
