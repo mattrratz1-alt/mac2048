@@ -40,7 +40,7 @@
     <h2>Enter Password to Play</h2>
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
       <input type="password" id="passwordInput" placeholder="Password" autofocus>
-      <button id="passwordBtn" type="button">Submit</button>
+      <button id="passwordBtn" type="button" onclick="checkPassword()">Submit</button>
     </div>
     <p id="error" style="color:red;display:none;">Incorrect password</p>
   </div>
@@ -305,6 +305,12 @@
     // attach listeners after DOM is ready
     document.addEventListener('DOMContentLoaded', ()=>{
       const btn=document.getElementById('passwordBtn');
+      const pw=document.getElementById('passwordInput');
+      if(btn){ btn.addEventListener('click', window.checkPassword); }
+      if(pw){ pw.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); window.checkPassword(); }}); }
+      // Quick sanity marker so we know this code ran:
+      console.log('Password gate ready');
+    });
       const pw=document.getElementById('passwordInput');
       if(btn){ btn.addEventListener('click', window.checkPassword); }
       if(pw){ pw.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); window.checkPassword(); }}); }
