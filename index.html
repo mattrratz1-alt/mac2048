@@ -38,7 +38,7 @@
   <!-- PASSWORD GATE -->
   <div id="passwordPrompt">
     <h2>Enter Password to Play</h2>
-    <input type="password" id="passwordInput" placeholder="Password">
+    <input type="password" id="passwordInput" placeholder="Password" autofocus>
     <button onclick="checkPassword()">Submit</button>
     <p id="error" style="color:red;display:none;">Incorrect password</p>
   </div>
@@ -78,14 +78,14 @@
     import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     // 1) PASTE YOUR FIREBASE CONFIG FROM THE CONSOLE HERE
-     const firebaseConfig = {
-  apiKey: "AIzaSyBDmxc9cg894mr6k2qD0CNmlcm7xqIM-1E",
-  authDomain: "mac2048-e8ae1.firebaseapp.com",
-  projectId: "mac2048-e8ae1",
-  storageBucket: "mac2048-e8ae1.firebasestorage.app",
-  messagingSenderId: "539725048583",
-  appId: "1:539725048583:web:32788c5135fc8172f4f3a2"
-};
+    const firebaseConfig = {
+      // apiKey: "...",
+      // authDomain: "...",
+      // projectId: "...",
+      // storageBucket: "...",
+      // messagingSenderId: "...",
+      // appId: "..."
+    };
 
     const app  = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -277,13 +277,28 @@
 
     // ======== Password & Boot ========
     function checkPassword(){
-      const input=document.getElementById('passwordInput').value;
-      if(input==="mcjewish"){
+      const inputEl=document.getElementById('passwordInput');
+      const val=(inputEl.value||'').trim();
+      if(val==='mcjewish'){
         document.getElementById('passwordPrompt').style.display='none';
         document.getElementById('gameContainer').style.display='block';
         startGame();
-      } else { document.getElementById('error').style.display='block'; }
+      } else {
+        const err=document.getElementById('error');
+        err.style.display='block';
+        // little visual cue
+        inputEl.style.outline='2px solid #d33';
+        setTimeout(()=>inputEl.style.outline='none',300);
+      }
     }
+
+    // allow pressing Enter to submit password
+    (function(){
+      const pw=document.getElementById('passwordInput');
+      if(pw){
+        pw.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); checkPassword(); }});
+      }
+    })();
 
     function startGame(){
       grid=createEmpty();
