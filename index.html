@@ -75,41 +75,48 @@
 
   <!-- FIREBASE (GLOBAL LEADERBOARD) -->
   <script>
-    // Lazy-load Firebase as a module **after** password success
-    window.loadFirebase = function loadFirebase(){
-      if(window.firebaseAPIs && window.firebaseAPIs.ready){ return Promise.resolve(); }
-      return new Promise((resolve, reject)=>{
-        const moduleCode = `
-          import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-          import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-          import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    // ---- Firebase compat loader (no modules, very safe across browsers) ----
+    (function(){ window.firebaseAPIs = { fetchTop5: function(){ return Promise.resolve([]); }, submitTopScore: function(){ return Promise.resolve(); }, ready: Promise.resolve() }; })();
 
-          const firebaseConfig = {
-  apiKey: "AIzaSyBDmxc9cg894mr6k2qD0CNmlcm7xqIM-1E",
-  authDomain: "mac2048-e8ae1.firebaseapp.com",
-  projectId: "mac2048-e8ae1",
-  storageBucket: "mac2048-e8ae1.firebasestorage.app",
-  messagingSenderId: "539725048583",
-  appId: "1:539725048583:web:32788c5135fc8172f4f3a2"
-};
+    function loadFirebaseCompat(callback){
+      // If already loaded, just callback
+      if(window.firebase && window.firebase.firestore){ if(callback) callback(); return; }
 
-          const app  = initializeApp(firebaseConfig);
-          const auth = getAuth(app);
-          const db   = getFirestore(app);
+      function add(src, onload){ var s=document.createElement('script'); s.src=src; s.onload=onload; s.onerror=function(e){ console.warn('Failed to load', src, e); if(callback) callback(); }; document.head.appendChild(s); }
 
-          const ready = signInAnonymously(auth).catch(console.error);
-          async function fetchTop5(){ await ready; const q=query(collection(db,'leaderboard'), orderBy('tile','desc'), limit(5)); const snap=await getDocs(q); return snap.docs.map(d=>d.data()); }
-          async function submitTopScore(name, tile){ await ready; await addDoc(collection(db,'leaderboard'), {name, tile, ts: serverTimestamp()}); }
-          window.firebaseAPIs = { fetchTop5, submitTopScore, ready };
-        `;
-        const s=document.createElement('script');
-        s.type='module';
-        s.textContent = moduleCode;
-        s.onload = ()=>resolve();
-        s.onerror = (e)=>{ console.warn('Firebase load failed', e); window.firebaseAPIs={fetchTop5:async()=>[], submitTopScore:async()=>{}, ready:Promise.resolve()}; resolve(); };
-        document.body.appendChild(s);
+      add('https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js', function(){
+        add('https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js', function(){
+          add('https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js', function(){
+            try{
+              var firebaseConfig = { 
+                apiKey: "AIzaSyBDmxc9cg894mr6k2qD0CNmlcm7xqIM-1E",
+                authDomain: "mac2048-e8ae1.firebaseapp.com",
+                projectId: "mac2048-e8ae1",
+                storageBucket: "mac2048-e8ae1.firebasestorage.app",
+                messagingSenderId: "539725048583",
+                appId: "1:539725048583:web:32788c5135fc8172f4f3a2" 
+              };
+              firebase.initializeApp(firebaseConfig);
+              var auth = firebase.auth();
+              auth.signInAnonymously().catch(function(e){ console.warn('Anon auth failed', e); });
+              var db = firebase.firestore();
+
+              window.firebaseAPIs = {
+                ready: Promise.resolve(),
+                fetchTop5: function(){
+                  return db.collection('leaderboard').orderBy('tile','desc').limit(5).get().then(function(snap){
+                    var a=[]; snap.forEach(function(doc){ a.push(doc.data()); }); return a; });
+                },
+                submitTopScore: function(name, tile){
+                  return db.collection('leaderboard').add({ name: name, tile: tile, ts: firebase.firestore.FieldValue.serverTimestamp() });
+                }
+              };
+            }catch(e){ console.warn('Firebase init problem', e); }
+            if(callback) callback();
+          });
+        });
       });
-    };
+    }
   </script>
 
   <!-- GAME LOGIC -->
