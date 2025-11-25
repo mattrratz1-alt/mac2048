@@ -37,7 +37,7 @@
       position:absolute;
       top:0;left:0;
       width:100%;height:100%;
-      background:rgba(238,228,218,0.8);
+            background:rgba(238,228,218,0.8);
       display:flex;
       justify-content:center;
       align-items:center;
@@ -62,6 +62,51 @@
       color:#776e65;
     }
     #scoreboard div {margin:5px 0;}
+
+    #leaderboardContainer {
+      margin:0 auto 20px;
+      background:#eee4da;
+      padding:12px 16px;
+      border-radius:8px;
+      max-width:320px;
+      color:#776e65;
+    }
+    #leaderboardContainer h3 {
+      margin:0 0 8px;
+      font-size:18px;
+      text-align:center;
+    }
+    #leaderboardList {
+      padding-left:18px;
+      margin:0;
+    }
+    #leaderboardList li {
+      margin:4px 0;
+      font-size:16px;
+    }
+    #leaderboardForm {
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:center;
+      margin-top:12px;
+    }
+    #leaderboardForm input {
+      padding:6px 8px;
+      width:100%;
+      max-width:220px;
+      font-size:16px;
+    }
+    #leaderboardForm button {
+      padding:8px 14px;
+      font-size:16px;
+      cursor:pointer;
+    }
+    #scoreSaved {
+      display:none;
+      color:#3c763d;
+      font-size:14px;
+    }
   </style>
 </head>
 <body>
@@ -73,6 +118,15 @@
   </div>
 
   <div id="gameContainer" style="display:none;">
+    <div id="leaderboardContainer">
+      <h3>Leaderboard</h3>
+      <ol id="leaderboardList"></ol>
+      <div id="leaderboardForm" aria-live="polite">
+        <input type="text" id="playerName" placeholder="Enter your name">
+        <button onclick="submitScore()">Submit Score</button>
+        <div id="scoreSaved">Score saved!</div>
+      </div>
+    </div>
     <div id="scoreboard">
       <div>Your current score: <span id="currentScore">0</span></div>
       <div>Your high score: <span id="highScore">0</span></div>
@@ -90,6 +144,7 @@
     let grid;
     let currentMax=2;
     let highMax=2;
+    let leaderboard=[];
 
     const nameMap={
       2:"Gabe",
@@ -115,93 +170,7 @@
       128:"images/128.png",
       256:"images/256.png",
       512:"images/512.png",
-      1024:"images/1024.png",
-      2048:"images/2048.png"
-    };
-
-    function createEmpty(){return Array.from({length:SIZE},()=>Array(SIZE).fill(0));}
-    function addRandom(){
-      const empty=[];
-      for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(!grid[r][c])empty.push([r,c]);
-      if(!empty.length)return;
-      const [r,c]=empty[Math.floor(Math.random()*empty.length)];
-      grid[r][c]=Math.random()<0.9?2:4;
-    }
-
-    const board=document.getElementById('board');
-    function draw(){
-      board.querySelectorAll('.tile').forEach(t=>t.remove());
-      const cells=board.querySelectorAll('.cell');
-      for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
-        const v=grid[r][c];if(!v)continue;
-        const tile=document.createElement('div');tile.className='tile';
-        if(imageMap[v]){
-          const img=document.createElement('img');
-          img.src=imageMap[v];
-          tile.appendChild(img);
-        } else {
-          tile.textContent=v;
-          tile.style.background='#edc22e';
-        }
-        cells[r*SIZE+c].appendChild(tile);
-        if(v>currentMax) currentMax=v;
-        if(v>highMax) highMax=v;
-      }
-      document.getElementById('currentScore').textContent=nameMap[currentMax]||currentMax;
-      document.getElementById('highScore').textContent=nameMap[highMax]||highMax;
-    }
-
-    function setupBoard(){
-      board.innerHTML='';
-      for(let i=0;i<SIZE*SIZE;i++){
-        const cell=document.createElement('div');cell.className='cell';
-        board.appendChild(cell);
-      }    
-    }
-
-    function compress(row){return row.filter(x=>x);} 
-    function pad(row){while(row.length<SIZE)row.push(0);return row;}
-
-    function move(dir){
-      let moved=false;
-      if(dir==='left'||dir==='right'){
-        for(let r=0;r<SIZE;r++){
-          let row=grid[r].slice();
-          if(dir==='right')row.reverse();
-          row=compress(row);
-          for(let i=0;i<row.length-1;i++)if(row[i]&&row[i]===row[i+1]){
-            row[i]*=2;
-            row[i+1]=0;i++;
-          }
-          row=pad(compress(row));
-          if(dir==='right')row.reverse();
-          if(row.some((v,i)=>v!==grid[r][i]))moved=true;
-          grid[r]=row;
-        }
-      } else {
-        for(let c=0;c<SIZE;c++){
-          let col=grid.map(r=>r[c]);
-          if(dir==='down')col.reverse();
-          col=compress(col);
-          for(let i=0;i<col.length-1;i++)if(col[i]&&col[i]===col[i+1]){
-            col[i]*=2;
-            col[i+1]=0;i++;
-          }
-          col=pad(compress(col));
-          if(dir==='down')col.reverse();
-          for(let r=0;r<SIZE;r++){if(grid[r][c]!==col[r])moved=true;grid[r][c]=col[r];}
-        }
-      }
-      if(moved)addRandom();
-      draw();
-      if(checkGameOver()) showGameOver();
-    }
-
-    function checkGameOver(){
-      for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(grid[r][c]===0)return false;
-      for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE-1;c++)if(grid[r][c]===grid[r][c+1])return false;
-      for(let c=0;c<SIZE;c++)for(let r=0;r<SIZE-1;r++)if(grid[r][c]===grid[r+1][c])return false;
-      return true;
+@@ -205,38 +260,87 @@
     }
 
     function showGameOver(){
@@ -227,6 +196,7 @@
     function startGame(){
       grid=createEmpty();
       currentMax=2;
+      document.getElementById('scoreSaved').style.display='none';
       setupBoard();
       addRandom();addRandom();
       draw();
@@ -235,8 +205,61 @@
         if(e.key==='ArrowRight')move('right');
         if(e.key==='ArrowUp')move('up');
         if(e.key==='ArrowDown')move('down');
+      window.addEventListener('keydown',handleKeydown,{once:true});
+    }
+
+    function handleKeydown(e){
+      document.getElementById('scoreSaved').style.display='none';
+      if(e.key==='ArrowLeft')move('left');
+      if(e.key==='ArrowRight')move('right');
+      if(e.key==='ArrowUp')move('up');
+      if(e.key==='ArrowDown')move('down');
+      window.addEventListener('keydown',handleKeydown,{once:true});
+    }
+
+    function loadLeaderboard(){
+      const saved=localStorage.getItem('leaderboard');
+      leaderboard=saved?JSON.parse(saved):[];
+      renderLeaderboard();
+    }
+
+    function saveLeaderboard(){
+      localStorage.setItem('leaderboard',JSON.stringify(leaderboard));
+    }
+
+    function sortedEntries(){
+      return [...leaderboard].sort((a,b)=>b.score-a.score).slice(0,10);
+    }
+
+    function renderLeaderboard(){
+      const list=document.getElementById('leaderboardList');
+      list.innerHTML='';
+      sortedEntries().forEach(({name,score})=>{
+        const li=document.createElement('li');
+        const label=nameMap[score]||score;
+        li.textContent=`${name} — ${label}`;
+        list.appendChild(li);
       });
     }
+
+    function submitScore(){
+      const input=document.getElementById('playerName');
+      const name=input.value.trim()||'Anonymous';
+      leaderboard=[...leaderboard,{name,score:currentMax}];
+      leaderboard=sortedEntries();
+      saveLeaderboard();
+      renderLeaderboard();
+      input.value='';
+      document.getElementById('scoreSaved').style.display='block';
+    }
+
+    loadLeaderboard();
+    document.getElementById('playerName').addEventListener('keydown',e=>{
+      if(e.key==='Enter'){
+        e.preventDefault();
+        submitScore();
+      }
+    });
   </script>
 </body>
 </html>
