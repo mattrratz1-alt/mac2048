@@ -474,22 +474,19 @@
         });
     }
 
-    function submitScoreToServer(name, tile){
-      if(!API_URL) return Promise.resolve();
-      return fetch(API_URL, {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ name:name, tile:tile })
-      })
-      .then(function(res){
-        if(!res.ok){
-          console.warn("Leaderboard POST failed", res.status, res.statusText);
-        }
-      })
-      .catch(function(err){
-        console.warn("Leaderboard POST error", err);
-      });
-    }
+  function submitScoreToServer(name, tile){
+  if (!API_URL) return Promise.resolve();
+
+  // Fire-and-forget POST; browser doesn't need to read the response.
+  return fetch(API_URL, {
+    method: "POST",
+    mode: "no-cors",
+    // no custom headers (simpler for browser), just raw JSON body
+    body: JSON.stringify({ name: name, tile: tile })
+  }).catch(function(err){
+    console.warn("Leaderboard POST error", err);
+  });
+}
 
     function renderLeaderboard(){
       const list = document.getElementById("leaderboardList");
