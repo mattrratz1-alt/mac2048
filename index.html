@@ -106,11 +106,31 @@
       border-radius:10px;
       z-index:10;
     }
-    #gameOverOverlay button{
-      margin-top:20px;
-      padding:10px 20px;
-      font-size:18px;
+    #gameOverOverlay h2{
+      margin:0 0 16px;
+      font-size:32px;
+    }
+    #gameOverContent{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:8px;
+      font-size:16px;
+    }
+    #overlayName{
+      padding:6px 8px;
+      font-size:16px;
+      width:220px;
+    }
+    #overlaySubmitBtn{
+      padding:8px 14px;
+      font-size:16px;
       cursor:pointer;
+    }
+    #overlaySaved{
+      display:none;
+      color:#3c763d;
+      font-size:14px;
     }
 
     /* Scoreboard */
@@ -146,29 +166,6 @@
       margin:4px 0;
       font-size:16px;
     }
-    #leaderboardForm{
-      display:none; /* shown only on Game Over */
-      flex-direction:column;
-      gap:8px;
-      align-items:center;
-      margin-top:12px;
-    }
-    #leaderboardForm input{
-      padding:6px 8px;
-      width:100%;
-      max-width:220px;
-      font-size:16px;
-    }
-    #leaderboardForm button{
-      padding:8px 14px;
-      font-size:16px;
-      cursor:pointer;
-    }
-    #scoreSaved{
-      display:none;
-      color:#3c763d;
-      font-size:14px;
-    }
   </style>
 </head>
 <body>
@@ -185,13 +182,6 @@
     <div id="leaderboardContainer">
       <h3>Global Leaderboard</h3>
       <ol id="leaderboardList"></ol>
-
-      <!-- only appears on Game Over -->
-      <div id="leaderboardForm" aria-live="polite">
-        <input type="text" id="playerName" placeholder="Enter your name">
-        <button id="submitScoreBtn" type="button">Submit Score</button>
-        <div id="scoreSaved">Score saved!</div>
-      </div>
     </div>
 
     <div id="scoreboard">
@@ -201,9 +191,15 @@
 
     <div id="board"></div>
 
+    <!-- Game over + name submission merged -->
     <div id="gameOverOverlay" style="display:none;">
-      <div>Game Over</div>
-      <button onclick="restartGame()">Restart</button>
+      <h2>Game Over</h2>
+      <div id="gameOverContent">
+        <div id="finalScoreText"></div>
+        <input type="text" id="overlayName" placeholder="Enter your name to save your score">
+        <button id="overlaySubmitBtn" type="button">Submit Score</button>
+        <div id="overlaySaved">Score saved!</div>
+      </div>
     </div>
 
     <div class="watermark">AdyrStudios <span class="star">✡</span></div>
@@ -436,9 +432,13 @@
       const pb = getPersonalBest();
       if(currentMax > pb) setPersonalBest(currentMax);
 
-      // show the name/submit UI now
-      document.getElementById("leaderboardForm").style.display = "flex";
-      document.getElementById("scoreSaved").style.display = "none";
+      // show final score text and focus name input
+      const label = nameMap[currentMax] || currentMax;
+      document.getElementById("finalScoreText").textContent =
+        "Your score: " + label;
+      document.getElementById("overlaySaved").style.display = "none";
+      document.getElementById("overlayName").value = "";
+      document.getElementById("overlayName").focus();
     }
 
     function restartGame(){
@@ -449,8 +449,6 @@
     function startGame(){
       grid = createEmpty();
       currentMax = 2;
-      document.getElementById("scoreSaved").style.display = "none";
-      document.getElementById("leaderboardForm").style.display = "none"; // hide until next Game Over
       setupBoard();
       addRandom();
       addRandom();
@@ -512,24 +510,30 @@
       });
     }
 
-    function submitScore(){
-      const nameInput = document.getElementById("playerName");
+    // called from overlay submit
+    function submitScoreAndRestart(){
+      const nameInput = document.getElementById("overlayName");
       const name = (nameInput.value || "").trim() || "Anonymous";
-      document.getElementById("scoreSaved").style.display = "none";
+      document.getElementById("overlaySaved").style.display = "none";
+
       submitScoreToServer(name, currentMax).then(function(){
-        document.getElementById("scoreSaved").style.display = "block";
+        document.getElementById("overlaySaved").style.display = "block";
         loadLeaderboard();
+        // short delay, then hide overlay and restart
+        setTimeout(function(){
+          document.getElementById("gameOverOverlay").style.display = "none";
+          startGame();
+        }, 600);
       });
-      nameInput.value = "";
     }
 
-    document.getElementById("submitScoreBtn")
-      .addEventListener("click", submitScore);
-    document.getElementById("playerName")
+    document.getElementById("overlaySubmitBtn")
+      .addEventListener("click", submitScoreAndRestart);
+    document.getElementById("overlayName")
       .addEventListener("keydown", function(e){
         if(e.key === "Enter"){
           e.preventDefault();
-          submitScore();
+          submitScoreAndRestart();
         }
       });
   </script>
